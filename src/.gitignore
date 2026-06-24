@@ -1,0 +1,16 @@
+# Python / uv
+.venv/
+__pycache__/
+*.pyc
+
+# 秘密情報 (SwitchBot Token/Secret)。.env.example をコピーして使う。
+.env
+
+# 実行時生成物
+captures/        # 未登録者の写真
+events.log       # イベントログ
+dataset/         # 学習用の生画像 (重い・Mac ローカル)
+
+# 学習の中間生成物。配布する .tflite と labels.txt は追跡する (option a)。
+models/*.keras
+models/*.h5
