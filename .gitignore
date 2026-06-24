@@ -1,6 +1,5 @@
 .DS_Store
 .env
 
-# Python キャッシュ
 __pycache__/
 *.pyc
