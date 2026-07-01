@@ -43,7 +43,7 @@ def detect_faces(image_bgr: cv2.typing.MatLike) -> cv2.typing.MatLike | None:
             [x, y, w, h, 5x2 landmarks, score], or None if no face is found.
     """
     height, width = image_bgr.shape[:2]
-    _detector.setInputSize((width, height))  # must match the image size on every call
+    _detector.setInputSize((width, height))
     _, faces = _detector.detect(image_bgr)
     return faces
 
@@ -99,7 +99,7 @@ if __name__ == "__main__":
     import sys
 
     # Allow `uv run recognition/detect.py`: put src/ on the path to import camera.
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from camera import capture_image
 
     image = capture_image()
