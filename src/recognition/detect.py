@@ -100,9 +100,9 @@ if __name__ == "__main__":
 
     # Allow `uv run recognition/detect.py`: put src/ on the path to import camera.
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    from camera import capture_image
+    from camera import capture_frames
 
-    image = capture_image()
+    image = capture_frames(1)[0]
     aligned = detect_and_align(image)
     if aligned is None:
         logger.error("No face to align.")
