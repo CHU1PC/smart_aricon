@@ -23,7 +23,7 @@ def _handle_press() -> None:
         logger.info(f"Unknown face (score={score:.3f}).")
         return
 
-    led.on()
+    led.blink(on_time=3, off_time=0, n=1, background=True)
     logger.info(f"Recognized '{user_id}' (score={score:.3f}).")
 
     try:
