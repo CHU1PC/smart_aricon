@@ -8,20 +8,17 @@ from loguru import logger
 from recognition.recognize import recognize
 
 button = Button(25, pull_up=False, bounce_time=0.1)
-green = LED(22)
-red = LED(23)
+led = LED(22)
 _busy = threading.Lock()
 
 
 def _handle_press() -> None:
-    green.off()
-    red.off()
+    led.off()
     user_id, score = recognize()
     if user_id == "unknown":
-        red.on()
         logger.info(f"Unknown face (score={score:.3f}).")
     else:
-        green.on()
+        led.on()
         logger.info(f"Recognized '{user_id}' (score={score:.3f}).")
 
 
@@ -47,8 +44,7 @@ def main() -> None:
         logger.info("Exiting program...")
     finally:
         button.close()
-        green.close()
-        red.close()
+        led.close()
 
 
 if __name__ == "__main__":
