@@ -21,7 +21,7 @@ def recognize(threshold: float = 0.6, save_dir: Path | None = None) -> tuple[str
         save_dir: If given, saves each captured frame and its aligned face here.
 
     Returns:
-        (user_id, score) for the best match, or ("unknown", best_score) if below
+        (user_id, score) for the nearest template, or ("unknown", best_score) if below
         threshold or if no face was found in any frame.
     """
     embeddings: list[npt.NDArray[np.float32]] = []
@@ -40,8 +40,8 @@ def recognize(threshold: float = 0.6, save_dir: Path | None = None) -> tuple[str
 
     mean = np.mean(embeddings, axis=0)
     query: npt.NDArray[np.float32] = (mean / np.linalg.norm(mean)).astype(np.float32)
-    store = face_store.load()
-    return face_store.match(store, query, threshold)
+    labels, gallery = face_store.load()
+    return face_store.match(labels, gallery, query, threshold)
 
 
 if __name__ == "__main__":

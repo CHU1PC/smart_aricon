@@ -1,69 +1,90 @@
-from collections.abc import Mapping
+from collections.abc import Sequence
 from pathlib import Path
 
 import numpy as np
 import numpy.typing as npt
 
 _STORE_PATH = Path(__file__).resolve().parent.parent / "gallery.npz"
+_EMBED_DIM = 512
 
 
-def load(path: Path = _STORE_PATH) -> dict[str, npt.NDArray[np.float32]]:
-    """Loads the face store (user_id -> embedding) from disk; empty if none.
+def load(path: Path = _STORE_PATH) -> tuple[list[str], npt.NDArray[np.float32]]:
+    """Loads the face store as parallel (labels, embeddings) arrays.
+
+    A user may appear on multiple rows (one template per row).
 
     Args:
-        path: Path to the .npz file containing the face store.
+        path: Path to the .npz store file.
 
     Returns:
-        A dictionary mapping user_id (str) to embedding (np.ndarray of shape (512,)).
+        A (labels, embeddings) pair where labels[i] owns row embeddings[i].
     """
     if not path.exists():
-        return {}
+        return [], np.empty((0, _EMBED_DIM), dtype=np.float32)
     with np.load(path) as data:
-        labels: npt.NDArray[np.str_] = data["labels"]
+        raw_labels: npt.NDArray[np.str_] = data["labels"]
         embeddings: npt.NDArray[np.float32] = data["embeddings"]
-    return {
-        str(labels[i]): np.asarray(embeddings[i], dtype=np.float32)
-        for i in range(len(labels))
-    }
+    labels = [str(raw_labels[i]) for i in range(len(raw_labels))]
+    return labels, embeddings
 
 
-def save(store: Mapping[str, npt.NDArray[np.float32]], path: Path = _STORE_PATH) -> None:
-    """Saves the face store (user_id -> embedding) to disk.
+def add(
+    labels: Sequence[str],
+    embeddings: npt.NDArray[np.float32],
+    user_id: str,
+    embedding: npt.NDArray[np.float32],
+) -> tuple[list[str], npt.NDArray[np.float32]]:
+    """Appends one template for a user.
 
     Args:
-        store: A dictionary mapping user_id (str) to embedding (np.ndarray of shape (512,)).
-        path: Path to the .npz file where the face store will be saved.
+        labels: Existing per-row labels.
+        embeddings: Existing (N, D) embedding matrix.
+        user_id: The user to add a template for.
+        embedding: The L2-normalized template to append.
+
+    Returns:
+        The updated (labels, embeddings).
     """
-    names = list(store)
-    np.savez(
-        path,
-        labels=np.array(names),
-        embeddings=np.stack([store[name] for name in names]),
-    )
+    new_labels = [*labels, user_id]
+    new_embeddings = np.vstack([embeddings, embedding[None, :]]).astype(np.float32)
+    return new_labels, new_embeddings
+
+
+def save(
+    labels: Sequence[str], embeddings: npt.NDArray[np.float32], path: Path = _STORE_PATH
+) -> None:
+    """Saves the (labels, embeddings) face store to disk.
+
+    Args:
+        labels: The per-row user labels.
+        embeddings: The (N, D) embedding matrix.
+        path: Path to the .npz store file.
+    """
+    np.savez(path, labels=np.array(labels), embeddings=embeddings)
 
 
 def match(
-    store: Mapping[str, npt.NDArray[np.float32]],
-    embedding: npt.NDArray[np.float32],
+    labels: Sequence[str],
+    embeddings: npt.NDArray[np.float32],
+    query: npt.NDArray[np.float32],
     threshold: float = 0.3,
 ) -> tuple[str, float]:
-    """Finds the closest enrolled user by cosine similarity.
+    """Finds the nearest enrolled template by cosine similarity.
 
     Args:
-        store: The enrolled user_id -> embedding mapping.
-        embedding: An L2-normalized query embedding.
+        labels: The per-row user labels.
+        embeddings: The (N, D) L2-normalized embedding matrix.
+        query: An L2-normalized query embedding.
         threshold: Minimum cosine similarity to accept a match.
 
     Returns:
-        (user_id, score) for the best match, or ("unknown", best_score) if below threshold.
+        (user_id, score) of the nearest template, or ("unknown", best_score) if below threshold.
     """
-    best_id = "unknown"
-    best_score = -1.0
-    for user_id, vec in store.items():
-        score = float(np.dot(embedding, vec))
-        if score > best_score:
-            best_score = score
-            best_id = user_id
-    if best_score < threshold:
-        return "unknown", best_score
-    return best_id, best_score
+    if len(labels) == 0:
+        return "unknown", 0.0
+    scores: npt.NDArray[np.float32] = embeddings @ query
+    idx = int(np.argmax(scores))
+    best = float(scores[idx])
+    if best < threshold:
+        return "unknown", best
+    return labels[idx], best

@@ -11,7 +11,7 @@ from recognition.embed import embed
 
 
 def register(user_id: str, count: int) -> None:
-    """Captures a burst of frames and stores the user's mean face embedding.
+    """Captures a burst and appends one face template for the user.
 
     Args:
         user_id: The identifier to enroll under.
@@ -28,11 +28,11 @@ def register(user_id: str, count: int) -> None:
         return
 
     mean = np.mean(embeddings, axis=0)
-    embedding: npt.NDArray[np.float32] = (mean / np.linalg.norm(mean)).astype(np.float32)
-    store = face_store.load()
-    store[user_id] = embedding
-    face_store.save(store)
-    logger.info(f"Registered '{user_id}' from {len(embeddings)}/{count} frames ({len(store)} users total)")
+    template: npt.NDArray[np.float32] = (mean / np.linalg.norm(mean)).astype(np.float32)
+    labels, gallery = face_store.load()
+    labels, gallery = face_store.add(labels, gallery, user_id, template)
+    face_store.save(labels, gallery)
+    logger.info(f"Registered '{user_id}' ({labels.count(user_id)} templates, {len(labels)} total)")
 
 
 def main() -> None:
