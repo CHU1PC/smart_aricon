@@ -5,12 +5,14 @@ import cv2
 from gpiozero import LED, Button
 from loguru import logger
 
+from airconditioner.switchbot import SwitchBotClient
 from recognition.recognize import recognize
 from temperature import DHT11, DHT11Error
 
 button = Button(25, pull_up=False, bounce_time=0.1)
 led = LED(22)
 dht = DHT11(14)
+sb = SwitchBotClient.from_env()
 _busy = threading.Lock()
 
 SETPOINTS = {"Tadashi": 25}
@@ -35,7 +37,8 @@ def _handle_press() -> None:
     setpoint = SETPOINTS.get(user_id, 25)
     logger.info(f"Room {temperature}C (humidity {humidity}%), setpoint {setpoint}C.")
     if temperature > setpoint:
-        logger.info("Cooling needed (SwitchBot pending).")
+        logger.info("Cooling needed.")
+        sb.set_air_conditioner(setpoint)
     else:
         logger.info("Within range; no action.")
 
